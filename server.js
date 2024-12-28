@@ -186,6 +186,7 @@ app.get('/historias', checkDBConnection, async (req, res) => {
 
 
 // app.get('/idhistorias', checkDBConnection, async (req, res) => {
+//   //Creando comentarios para id historias
 //   const { idUser } = req.query;
   
 //   if (!idUser) {
