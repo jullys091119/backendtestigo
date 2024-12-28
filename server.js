@@ -4,6 +4,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { text } = require('stream/consumers');
 
 const app = express();
 const port = 3000;
@@ -36,14 +37,14 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: function (req, file, cb) {
-    const filetypes = /jpeg|jpg|png/;
+    const filetypes = /jpeg|jpg|png|webp|tiff|jfif/;
     const mimetype = filetypes.test(file.mimetype);
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
 
     if (mimetype && extname) {
       return cb(null, true);
     }
-    return cb(new Error('Solo se permiten imágenes (jpeg, jpg, png)'));
+    return cb(new Error('Solo se permiten imágenes (jpeg, jpg, png, webp, tiff, jfif)'));
   }
 });
 
@@ -183,40 +184,6 @@ app.get('/historias', checkDBConnection, async (req, res) => {
   }
 });
 
-
-
-// app.get('/idhistorias', checkDBConnection, async (req, res) => {
-//   const { idUser } = req.query;
-  
-//   if (!idUser) {
-//     return res.status(400).json({ message: 'Se requiere el parámetro idUser' });
-//   }
-
-//   try {
-//     // Convertir idUser a número entero
-//     const userId = parseInt(idUser, 10);
-    
-//     if (isNaN(userId)) {
-//       return res.status(400).json({ message: 'El idUser debe ser un número válido' });
-//     }
-
-//     console.log('Buscando historias para el usuario:', userId);
-//     const result = await client.query('SELECT * FROM historias WHERE id_usuario = $1 ORDER BY id DESC', [userId]);
-//     console.log('Resultado de la consulta:', result.rows);
-
-//     if (result.rows.length === 0) {
-//       return res.status(404).json({ message: 'No se encontraron historias para este usuario' });
-//     }
-
-//     res.status(200).json(result.rows);
-//   } catch (error) {
-//     console.error('Error al recuperar las historias del usuario:', error);
-//     res.status(500).json({ message: 'Error en el servidor al obtener las historias' });
-//   }
-// });
-
-
-
 app.get('/usuario', checkDBConnection, async (req, res) => {
   const { id } = req.query;
   try {
@@ -227,6 +194,44 @@ app.get('/usuario', checkDBConnection, async (req, res) => {
     res.status(500).send('Error en el servidor');
   }
 });
+
+app.post('/insertarPost', checkDBConnection, upload.single('file'), async (req, res) => {
+  const { txt, id, nombreUser } = req.body; // Usa `req.body` para obtener los datos JSON enviados en la solicitud
+  const filePath = req.file ? `/uploads/${req.file.filename}` : null; // URL del archivo si existe
+  
+  try {
+    // Inserta en la tabla posts
+    const result = await client.query(
+      'INSERT INTO posts(nombre, contenido, autor_id, imagen_url) VALUES($1, $2, $3, $4) RETURNING *',
+      [nombreUser, txt, id, filePath] // Incluye la URL de la imagen si se subió
+    );
+     
+    console.log(result.rows, "<<<<<<<<<<<<<"); 
+    res.json({
+      success: true,
+      message: 'Post creado exitosamente',
+      data: result.rows[0]
+    }); // Devuelve los datos insertados
+  } catch (error) {
+    console.log("Error al insertar los datos del post:", error);
+    res.status(500).send('Error en el servidor');
+  }
+});
+
+
+app.get('/optenerPost', checkDBConnection,async(req, res)=>  {
+ try {
+  const result = await client.query(
+    'SELECT * FROM posts ORDER BY id DESC'
+  );
+ res.json(result.rows)
+ } catch (error) {
+  console.log("Error al optener los posts del usuario", error)
+  res.status(500).send("Error en el servidor")
+ }
+})
+
+
 
 // Ruta raíz de prueba
 app.get('/', (req, res) => {
