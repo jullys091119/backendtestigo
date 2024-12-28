@@ -184,38 +184,6 @@ app.get('/historias', checkDBConnection, async (req, res) => {
   }
 });
 
-
-// app.get('/idhistorias', checkDBConnection, async (req, res) => {
-//   //Creando comentarios para id historias
-//   const { idUser } = req.query;
-  
-//   if (!idUser) {
-//     return res.status(400).json({ message: 'Se requiere el parámetro idUser' });
-//   }
-
-//   try {
-//     // Convertir idUser a número entero
-//     const userId = parseInt(idUser, 10);
-    
-//     if (isNaN(userId)) {
-//       return res.status(400).json({ message: 'El idUser debe ser un número válido' });
-//     }
-
-//     console.log('Buscando historias para el usuario:', userId);
-//     const result = await client.query('SELECT * FROM historias WHERE id_usuario = $1 ORDER BY id DESC', [userId]);
-//     console.log('Resultado de la consulta:', result.rows);
-
-//     if (result.rows.length === 0) {
-//       return res.status(404).json({ message: 'No se encontraron historias para este usuario' });
-//     }
-
-//     res.status(200).json(result.rows);
-//   } catch (error) {
-//     console.error('Error al recuperar las historias del usuario:', error);
-//     res.status(500).json({ message: 'Error en el servidor al obtener las historias' });
-//   }
-// });
-
 app.get('/usuario', checkDBConnection, async (req, res) => {
   const { id } = req.query;
   try {
