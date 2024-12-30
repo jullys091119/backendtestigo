@@ -92,7 +92,10 @@ app.get('/usuarios', checkDBConnection, async (req, res) => {
   }
 });
 
-app.post('/subirImagen', upload.single('file'), async (req, res) => {
+
+
+
+app.post('/crearhistoria', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No se recibió ningún archivo o el formato no es válido' });
@@ -107,28 +110,16 @@ app.post('/subirImagen', upload.single('file'), async (req, res) => {
 
     let response;
 
-    // Si es una imagen de perfil, actualiza la foto de perfil del usuario
-    if (isProfileImage) {
-      // Actualizar la foto de perfil del usuario, si ya existe un usuario con ese ID
-      response = await client.query(
-        `UPDATE usuarios 
-        SET nombre = $2, apellido = $3, correo = $4, clave = $5, foto_perfil = $6 
-        WHERE id = $1 
-        RETURNING *`,
-        [idUser, nameUser, lastNameUser, emailUser, password, filePath]
-      );
-    } else {
-      // Si no es una foto de perfil, inserta una historia
-      response = await client.query(
-        'INSERT INTO historias (id_usuario, contenido) VALUES ($1, $2) RETURNING *',
-        [idUser, filePath] // Usa idUser en lugar de id_usuario
-      );
-    }
+    // Si no es una foto de perfil, inserta una historia
+    response = await client.query(
+      'INSERT INTO historias (id_usuario, contenido) VALUES ($1, $2) RETURNING *',
+      [idUser, filePath] // Usa idUser en lugar de id_usuario
+    );
 
     if (response.rows.length > 0) {
       return res.json({
         success: true,
-        message: isProfileImage ? 'Foto de perfil actualizada exitosamente' : 'Historia subida exitosamente',
+        message: 'Historia subida exitosamente',
         data: response.rows[0]
       });
     }
@@ -139,6 +130,80 @@ app.post('/subirImagen', upload.single('file'), async (req, res) => {
     res.status(500).json({ success: false, message: 'Error en el servidor: ' + error.message });
   }
 });
+
+
+
+app.post('/cambiarPerfil', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No se recibió ningún archivo o el formato no es válido' });
+    }
+
+    const filePath = `/uploads/${req.file.filename}`;
+    const { idUser } = req.body; // Accede a idUser desde req.body
+
+    if (!idUser) {
+      return res.status(400).json({ success: false, message: 'Se requiere el id_usuario' });
+    }
+
+    let response;
+
+    // Si no es una foto de perfil, inserta una historia
+    response = await client.query(`
+      UPDATE usuarios SET  foto_perfil = $2 WHERE id = $1 RETURNING *`, 
+      [idUser, filePath]);
+    if (response.rows.length > 0) {
+      return res.json({
+        success: true,
+        message: "Foto perfil subida correctamente",
+        data: response.rows[0]
+      });
+    }
+
+    return res.status(400).json({ success: false, message: 'No se pudo realizar la operación' });
+  } catch (error) {
+    console.error('Error al subir la imagen:', error);
+    res.status(500).json({ success: false, message: 'Error en el servidor: ' + error.message });
+  }
+});
+
+
+app.post('/cambiarPortada', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No se recibió ningún archivo o el formato no es válido' });
+    }
+
+    const filePath = `/uploads/${req.file.filename}`;
+    const { idUser } = req.body; // Accede a idUser desde req.body
+
+    if (!idUser) {
+      return res.status(400).json({ success: false, message: 'Se requiere el id_usuario' });
+    }
+
+    let response;
+
+    // Si no es una foto de perfil, inserta una historia
+    response = await client.query(`
+      UPDATE usuarios SET  img_portada = $2 WHERE id = $1 RETURNING *`, 
+      [idUser, filePath]);
+    if (response.rows.length > 0) {
+      return res.json({
+        success: true,
+        message: "Foto portada subida correctamente",
+        data: response.rows[0]
+      });
+    }
+
+    return res.status(400).json({ success: false, message: 'No se pudo realizar la operación' });
+  } catch (error) {
+    console.error('Error al subir la imagen:', error);
+    res.status(500).json({ success: false, message: 'Error en el servidor: ' + error.message });
+  }
+});
+
+
+
 
 // Ruta para login
 app.post('/login', checkDBConnection, async (req, res) => {
@@ -198,15 +263,13 @@ app.get('/usuario', checkDBConnection, async (req, res) => {
 app.post('/insertarPost', checkDBConnection, upload.single('file'), async (req, res) => {
   const { txt, id, nombreUser } = req.body; // Usa `req.body` para obtener los datos JSON enviados en la solicitud
   const filePath = req.file ? `/uploads/${req.file.filename}` : null; // URL del archivo si existe
-  
+
   try {
     // Inserta en la tabla posts
     const result = await client.query(
       'INSERT INTO posts(nombre, contenido, autor_id, imagen_url) VALUES($1, $2, $3, $4) RETURNING *',
       [nombreUser, txt, id, filePath] // Incluye la URL de la imagen si se subió
     );
-     
-    console.log(result.rows, "<<<<<<<<<<<<<"); 
     res.json({
       success: true,
       message: 'Post creado exitosamente',
@@ -219,23 +282,23 @@ app.post('/insertarPost', checkDBConnection, upload.single('file'), async (req, 
 });
 
 
-app.get('/optenerPost', checkDBConnection,async(req, res)=>  {
- try {
-  const result = await client.query(
-    'SELECT * FROM posts ORDER BY id DESC'
-  );
- res.json(result.rows)
- } catch (error) {
-  console.log("Error al optener los posts del usuario", error)
-  res.status(500).send("Error en el servidor")
- }
+app.get('/optenerPost', checkDBConnection, async (req, res) => {
+  try {
+    const result = await client.query(
+      'SELECT * FROM posts ORDER BY id DESC'
+    );
+    res.json(result.rows)
+  } catch (error) {
+    console.log("Error al optener los posts del usuario", error)
+    res.status(500).send("Error en el servidor")
+  }
 })
 
 
 
 // Ruta raíz de prueba
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     status: 'ok',
     dbConnected: dbConnected
   });
