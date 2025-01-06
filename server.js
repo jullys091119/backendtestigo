@@ -260,6 +260,7 @@ app.get('/usuario', checkDBConnection, async (req, res) => {
   }
 });
 
+
 app.post('/insertarPost', checkDBConnection, upload.single('file'), async (req, res) => {
   const { txt, id, nombreUser } = req.body; // Usa `req.body` para obtener los datos JSON enviados en la solicitud
   const filePath = req.file ? `/uploads/${req.file.filename}` : null; // URL del archivo si existe
