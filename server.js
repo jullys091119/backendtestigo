@@ -4,7 +4,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { text } = require('stream/consumers');
+const { text, json } = require('stream/consumers');
 
 const app = express();
 const port = 3000;
@@ -404,9 +404,9 @@ app.get('/likes/:idPost', async (req, res) => {
 
 
 app.post('/comentarios', checkDBConnection, async (req, res) => {
-  const { idPost, nombre, comentario } = req.body;
-
-  if (!idPost || !nombre || !comentario) {
+  const { userId,  idPost,  text } = req.body;
+   
+  if (!idPost || !text) {
     return res.status(400).json({
       success: false,
       message: 'Se requiere el id del post, nombre y comentario'
@@ -415,8 +415,8 @@ app.post('/comentarios', checkDBConnection, async (req, res) => {
 
   try {
     const response = await client.query(
-      'INSERT INTO comentarios(post_id, nombre, comentario) VALUES($1, $2, $3) RETURNING *',
-      [idPost, nombre, comentario]
+      'INSERT INTO comentarios( post_id,user_id,comentario) VALUES($1, $2, $3) RETURNING *',
+      [ idPost,userId,text]
     );
 
     if (response.rows.length > 0) {
@@ -439,6 +439,32 @@ app.post('/comentarios', checkDBConnection, async (req, res) => {
     });
   }
 })
+
+
+app.get('/optenerComentarios', checkDBConnection, async (req, res) => {
+  const postId = req.query.id;
+   
+  try {
+    if (typeof postId === 'undefined' || postId === null) {
+      return; // Detener la ejecución si postId no es válido
+    }
+    // Realizando la consulta para obtener los comentarios
+    const result = await client.query('SELECT * FROM comentarios WHERE post_id = $1', [postId]);
+    
+    // Enviando los datos obtenidos en formato JSON
+    res.json(result.rows);
+    
+    
+    // Para depuración, puedes ver qué datos se están devolviendo
+    // console.log(result.rows, "Comentarios obtenidos");
+  } catch (error) {
+    // Si ocurre un error, lo mostramos en consola y respondemos al cliente con un mensaje de error
+    console.error(error, "Error al obtener comentarios");
+    
+    // Responder con un error HTTP 500
+    res.status(500).json({ message: "Error al obtener los comentarios", error: error.message });
+  }
+});
 
 
 
